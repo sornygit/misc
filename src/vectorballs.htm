@@ -1,0 +1,235 @@
+<html>
+<head>
+<title>VectorBalls by Miffel</title>
+<STYLE TYPE="text/css">
+	#LayerEtt {POSITION: absolute; VISIBILITY: HIDDEN; Z-INDEX: 000001; top: 000;}
+	#LayerTva {POSITION: absolute; VISIBILITY: HIDDEN; Z-INDEX: 000010; top: 001;}
+	#LayerTre {POSITION: absolute; VISIBILITY: HIDDEN; Z-INDEX: 000011; top: 010;}
+	#LayerFyra {POSITION: absolute; VISIBILITY: HIDDEN; Z-INDEX: 000100; top: 011;}
+	#LayerFem {POSITION: absolute; VISIBILITY: HIDDEN; Z-INDEX: 000101; top: 100;}
+	#LayerSex {POSITION: absolute; VISIBILITY: HIDDEN; Z-INDEX: 000110; top: 101;}
+	#LayerSju {POSITION: absolute; VISIBILITY: HIDDEN; Z-INDEX: 000111; top: 110;}
+	#LayerAtta {POSITION: absolute; VISIBILITY: HIDDEN; Z-INDEX: 001000; top: 111;}
+	#loading {POSITION: absolute; VISIBILITY: HIDDEN; Z-INDEX: 001001;}
+</STYLE> 
+
+<script language="JavaScript1.2">
+<!--
+
+	//global variables
+	var totalTime=100000;
+	var currTime=0;
+	var layerRef="null",layerStyleRef="null",styleSwitch="null";
+	var pi=3.1415926535;
+      var per=0.0031;
+	var ball1 = new Array(3);
+	var ball2 = new Array(3);
+	var ball3 = new Array(3);
+	var ball4 = new Array(3);
+	var ball5 = new Array(3);
+	var ball6 = new Array(3);
+	var ball7 = new Array(3);
+	var ball8 = new Array(3);
+	var ballrot1 = new Array(3);
+	var ballrot2 = new Array(3);
+	var ballrot3 = new Array(3);
+	var ballrot4 = new Array(3);
+	var ballrot5 = new Array(3);
+	var ballrot6 = new Array(3);
+	var ballrot7 = new Array(3);
+	var ballrot8 = new Array(3);
+	var Zarray=new Array(8);
+	var rot=1;
+	var degree=0;
+	var sin2 = 0.0;
+	var cos2 = 0.0;
+	sin2=Math.sin((rot*pi)/180);
+	cos2=Math.sin((rot*pi)/180);
+
+
+
+      if (navigator.appName == "Netscape") {
+      	layerStyleRef="layer.";
+            layerRef="document.layers";
+            styleSwitch="";
+      }else{
+            layerStyleRef="layer.style.";
+            layerRef="document.all";
+            styleSwitch=".style";
+      }
+
+// Make a cube with balls in each corner
+
+	ball1[0] = -70.0; ball1[1]=-70.0; ball1[2]=-70.0;
+	ball2[0] = -70.0; ball2[1]=70.0; ball2[2]=-70.0;
+	ball3[0] = -70.0; ball3[1]=70.0; ball3[2]=70.0;
+	ball4[0] = -70.0; ball4[1]=-70.0; ball4[2]=70.0;
+	ball5[0] = 70.0; ball5[1]=-70.0; ball5[2]=-70.0;
+	ball6[0] = 70.0; ball6[1]=70.0; ball6[2]=-70.0;
+	ball7[0] = 70.0; ball7[1]=70.0; ball7[2]=70.0;
+	ball8[0] = 70.0; ball8[1]=-70.0; ball8[2]=70.0;
+
+	ballrot1[0] = -70.0; ballrot1[1]=-70.0; ballrot1[2]=-70.0;
+	ballrot2[0] = -70.0; ballrot2[1]=70.0; ballrot2[2]=-70.0;
+	ballrot3[0] = -70.0; ballrot3[1]=70.0; ballrot3[2]=70.0;
+	ballrot4[0] = -70.0; ballrot4[1]=-70.0; ballrot4[2]=70.0;
+	ballrot5[0] = 70.0; ballrot5[1]=-70.0; ballrot5[2]=-70.0;
+	ballrot6[0] = 70.0; ballrot6[1]=70.0; ballrot6[2]=-70.0;
+	ballrot7[0] = 70.0; ballrot7[1]=70.0; ballrot7[2]=70.0;
+	ballrot8[0] = 70.0; ballrot8[1]=-70.0; ballrot8[2]=70.0;
+
+	var cosinus = new Array(8);
+	var sinus = new Array(8);
+
+//	var cos2=-0.4161468365;
+//	var sin2=0.9092974268;
+
+	for (i=0; i<8; i++) {
+      	cosinus[i]=Math.cos((i*pi)/180.0);
+	      sinus[i]=Math.sin((i*pi)/180.0);
+     	}
+
+
+ function showLayer(layerName){
+        eval(layerRef+'["'+layerName+'"]'+styleSwitch+'.visibility="visible"');
+ }
+        
+ function hideLayer(layerName){
+        eval(layerRef+'["'+layerName+'"]'+styleSwitch+'.visibility="hidden"');
+ }
+ 
+ function stopTimeline(){
+        currTime=totalTime+1;
+ }
+ 
+ function startTimeline(){
+        currTime=0;
+        timelineController();
+ }
+ 
+ function timelineController(){ 
+        if (currTime <= totalTime){
+            currTime++;
+
+		RotXY(ballrot1, ballrot1);
+		RotXZ(ballrot1, ballrot1);
+		RotYZ(ballrot1, ballrot1);
+		RotXY(ballrot2, ballrot2);
+		RotXZ(ballrot2, ballrot2);
+		RotYZ(ballrot2, ballrot2);
+		RotXY(ballrot3, ballrot3);
+		RotXZ(ballrot3, ballrot3);
+		RotYZ(ballrot3, ballrot3);
+		RotXY(ballrot4, ballrot4);
+		RotXZ(ballrot4, ballrot4);
+		RotYZ(ballrot4, ballrot4);
+		RotXY(ballrot5, ballrot5);
+		RotXZ(ballrot5, ballrot5);
+		RotYZ(ballrot5, ballrot5);
+		RotXY(ballrot6, ballrot6);
+		RotXZ(ballrot6, ballrot6);
+		RotYZ(ballrot6, ballrot6);
+		RotXY(ballrot7, ballrot7);
+		RotYZ(ballrot7, ballrot7);
+		RotXZ(ballrot7, ballrot7);
+		RotXY(ballrot8, ballrot8);
+		RotXZ(ballrot8, ballrot8);
+		RotYZ(ballrot8, ballrot8);
+
+		Zarray[0]=ball1[2];
+		Zarray[1]=ball2[2];
+		Zarray[2]=ball3[2];
+		Zarray[3]=ball4[2];
+		Zarray[4]=ball5[2];
+		Zarray[5]=ball6[2];
+		Zarray[6]=ball7[2];
+		Zarray[7]=ball8[2];
+
+		Perspective("LayerEtt", ballrot1);
+		Perspective("LayerTva", ballrot2);
+		Perspective("LayerTre", ballrot3);
+		Perspective("LayerFyra", ballrot4);
+		Perspective("LayerFem", ballrot5);
+		Perspective("LayerSex", ballrot6);
+		Perspective("LayerSju", ballrot7);
+		Perspective("LayerAtta", ballrot8);
+
+	      setTimeout("timelineController()",10);
+        }
+ }
+ 
+ //---------------ANIMATION FUNCTIONS------------------------------------------
+ 
+ //MOVE LAYER TO
+ //This function simply chnages the left and top coordinates of a layer
+ //to the coordinates passed to it. This makes the layer move.
+ function moveLayerTo(layerName,left,top){
+        eval(layerRef+'["'+layerName+'"]'+styleSwitch+'.top=top');
+        eval(layerRef+'["'+layerName+'"]'+styleSwitch+'.left=left');
+ }
+
+function RotXZ(bollen, bollsrc)
+{
+      bollen[0]=(bollsrc[0]*cos2+(bollsrc[2]*sin2));
+      bollen[2]=(bollsrc[2]*cos2-(bollsrc[0]*sin2));
+}
+
+function RotXY(bollen, bollsrc)
+{
+      bollen[0]=(bollsrc[0]*cos2-(bollsrc[1]*sin2));
+      bollen[1]=(bollsrc[1]*cos2+(bollsrc[0]*sin2));
+}
+
+function RotYZ(bollen, bollsrc)
+{
+      bollen[1]=(bollsrc[1]*cos2-(bollsrc[2]*sin2));
+      bollen[2]=(bollsrc[2]*cos2+(bollsrc[1]*sin2));
+}
+
+function Perspective(objektet, bollen) {
+      var x=Math.round(bollen[0]/(1-bollen[2]*per))+320;
+      var y=145-Math.round(bollen[1]/(1-bollen[2]*per));
+
+	moveLayerTo(objektet, x, y);
+      showLayer(objektet);
+}
+
+//-->
+</script>
+</head>
+<body bgcolor="#000000" text="#ffffff" onLoad="hideLayer('loading');startTimeline();">
+<DIV ID="LayerEtt">
+<IMG SRC="saucer.gif">
+</DIV>
+<DIV ID="LayerTva">
+<IMG SRC="saucer.gif">
+</DIV>
+<DIV ID="LayerTre">
+<IMG SRC="saucer.gif">
+</DIV>
+<DIV ID="LayerFyra">
+<IMG SRC="saucer.gif">
+</DIV>
+<DIV ID="LayerFem">
+<IMG SRC="saucer.gif">
+</DIV>
+<DIV ID="LayerSex">
+<IMG SRC="saucer.gif">
+</DIV>
+<DIV ID="LayerSju">
+<IMG SRC="saucer.gif">
+</DIV>
+<DIV ID="LayerAtta">
+<IMG SRC="saucer.gif">
+</DIV>
+<DIV ID="loading">
+ <TABLE WIDTH=100% HEIGHT=100% >
+        <TR>
+                <TD BGCOLOR=black>
+        LOADING IMAGES
+                </TD>
+        </TR>
+ </TABLE>
+ </DIV>
+</body>
+</html> 
