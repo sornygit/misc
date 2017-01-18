@@ -10,524 +10,514 @@ import java.awt.*;
 import java.util.Enumeration;
 import java.util.Vector;
 
-public class ThreeDObject extends Applet implements Runnable{
-
-	private Thread	trThread = null;
-	private Image	imOffScreenImage;
-	private Graphics	grOffScreenGraphics;
-	private Dimension	dOffScreenSize;
-	private FontMetrics fm=null;
-	ThreeDPolygon	front;
-	private Vector	Object;
-	boolean		shade = false;
-	private int	fill=2;
-	int scale = 1;
-	int translate = 10;
-
-	// Mouse control variables
-	boolean		mouse = false;
-	private int	mousex, mousey;
-	private int	mousedragx, mousedragy;
-	
-	// String for getting parameters
-	String		paramstr;
-
-	// Variables for keeping track of frame speed
-	long 		firstFrame, frames, fps;
-	private int	intFrameRate=10;
-
-	// With which degree the object rotates in yz, xy and xz-axises
-	int rotyz = 0;
-	int rotxy = 0;
-	int rotxz = 0;
+public class ThreeDObject extends Applet implements Runnable {
+
+    private Thread trThread = null;
+    private Image imOffScreenImage;
+    private Graphics grOffScreenGraphics;
+    private Dimension dOffScreenSize;
+    private FontMetrics fm = null;
+    private Vector threeDObject;
+    boolean shade = false;
+    private int fill = 2;
+    int scale = 1;
+    int translate = 10;
 
-	// If they are 0, use varying rotation degrees instead.
-	int rotyz_change = 0;
-	int rotxy_change = 0;
-	int rotxz_change = 0;
+    // Mouse control variables
+    boolean mouse = false;
+    private int mousex, mousey;
+    private int mousedragx, mousedragy;
 
-	// Constants for rotation if static rotation angles = 0.
-	// rot_factors determine the sinus and cosinus of the rotations
-
-	int rot_factor1 = 30;
-	int rot_factor2 = 30;
-	int rot_factor3 = 30;
-	int rot_max = 6;
-	int degree = 0;
+    // String for getting parameters
+    String paramstr;
 
-	// Distance to point of perspective from x=0, y=0, z=0
-	private int DPRP = 100;
+    // Variables for keeping track of frame speed
+    long firstFrame, frames, fps;
+    private int intFrameRate = 10;
 
-	// Distance to view plane from same point
-	private int DVPL = 150;
+    // With which degree the object rotates in yz, xy and xz-axises
+    int rotyz = 0;
+    int rotxy = 0;
+    int rotxz = 0;
 
-	public void init() {
+    // If they are 0, use varying rotation degrees instead.
+    int rotyz_change = 0;
+    int rotxy_change = 0;
+    int rotxz_change = 0;
 
-		// Get parameters for the applet and
-		// convert parameters from strings to integers
+    // Constants for rotation if static rotation angles = 0.
+    // rot_factors determine the sinus and cosinus of the rotations
 
-		paramstr=getParameter("fill");
-		if (paramstr != null)
-			fill=Integer.valueOf(paramstr).intValue();
+    int rot_factor1 = 30;
+    int rot_factor2 = 30;
+    int rot_factor3 = 30;
+    int rot_max = 6;
+    int degree = 0;
 
-		paramstr=getParameter("prp");
-		if (paramstr != null)
-			DPRP=Integer.valueOf(paramstr).intValue();
+    // Distance to point of perspective from x=0, y=0, z=0
+    private int DPRP = 100;
 
-		paramstr=getParameter("vpl");
-		if (paramstr != null)
-			DVPL=Integer.valueOf(paramstr).intValue();
+    // Distance to view plane from same point
+    private int DVPL = 150;
+    // Dimensions
+    private int xDistance0ToCentre;
+    private int yDistance0ToCentre;
+    private Dimension appletDimensions;
+
+    public void init() {
+        appletDimensions = size();
+        xDistance0ToCentre = Math.round(appletDimensions.width / 2);
+        yDistance0ToCentre = Math.round(appletDimensions.height / 2);
 
-		paramstr=getParameter("rotyz");
-		if (paramstr != null)
-			rotyz=Integer.valueOf(paramstr).intValue();
+        // The data structure for the cube
+        threeDObject = new Vector();
 
-		paramstr=getParameter("rotxz");
-		if (paramstr != null)
-			rotxz=Integer.valueOf(paramstr).intValue();
+        // Get parameters for the applet and
+        // convert parameters from strings to integers
+        getAppletParameters();
 
-		paramstr=getParameter("rotxy");
-		if (paramstr != null)
-			rotxy=Integer.valueOf(paramstr).intValue();
+        // Here we make the object out of some polygons
 
-		paramstr=getParameter("rotmax");
-		if (paramstr != null)
-			rot_max=Integer.valueOf(paramstr).intValue();
+        // FRONT polygon
+        addFrontPolygon(threeDObject);
 
-		paramstr=getParameter("rot1");
-		if (paramstr != null)
-			rot_factor1=Integer.valueOf(paramstr).intValue();
+        // TOP  polygon
+        addTopPolygon(threeDObject);
 
-		paramstr=getParameter("rot2");
-		if (paramstr != null)
-			rot_factor2=Integer.valueOf(paramstr).intValue();
+        // LEFT polygon
+        addLeftPolygon(threeDObject);
 
-		paramstr=getParameter("rot3");
-		if (paramstr != null)
-			rot_factor3=Integer.valueOf(paramstr).intValue();
+        // RIGHT polygon
+        addRightPolygon(threeDObject);
 
-		paramstr=getParameter("scale");
-		if (paramstr != null)
-			scale=Integer.valueOf(paramstr).intValue();
+        // BOTTOM polygon
+        addBottomPolygon(threeDObject);
 
-		paramstr=getParameter("delay");
-		if (paramstr != null)
-			intFrameRate=Integer.valueOf(paramstr).intValue();
+        // BACK polygon
+        addBackPolygon(threeDObject);
 
-		paramstr=getParameter("shade");
-		if (paramstr.equals("on"))
-			shade = true;
+        // Final result: a CUBE!
+        showStatus("Click and drag your mouse on object to control rotation.");
 
-		// Here we make the object out of some polygons
+    }
 
-		front = new ThreeDPolygon();
-	
-// FRONT polygon
+    public final synchronized void update(Graphics grG) {
+        // The double-buffering routine, makes sure drawing is made to a hidden image. Then we switch the images.
+        if ((imOffScreenImage == null) || (appletDimensions.width != dOffScreenSize.width) || (appletDimensions.height != dOffScreenSize.height)) {
+            imOffScreenImage = createImage(appletDimensions.width, appletDimensions.height);
+            dOffScreenSize = appletDimensions;
+            grOffScreenGraphics = imOffScreenImage.getGraphics();
+            grOffScreenGraphics.setFont(getFont());
+        }
 
-		// Upper front left
+        grG.setColor(Color.black);
 
-		front.addPoint(-10.0, 10.0, 10.0);
+        grOffScreenGraphics.fillRect(0, 0, appletDimensions.width, appletDimensions.height);
 
-		// Upper front right corner
-		front.addPoint(10.0, 10.0, 10.0);
+        paint(grOffScreenGraphics);
 
-		// Lower front right
-		front.addPoint(10.0, -10.0, 10.0);
+        grG.drawImage(imOffScreenImage, 0, 0, null);
+    }
 
-		// Lower front left
-		front.addPoint(-10.0, -10.0, 10.0);
+    public final synchronized void paint(Graphics gr) {
+        Rectangle r = bounds();
+        Vector ZSorted;
 
-		// Set color of polygon
-		front.setColor(255,255,255);
+        ZSorted = ZSort(threeDObject);
 
-		// Set scale of object
-		front.Scale(scale);
-		front.Translate(0,0,translate);
+        if (fm == null)
+            fm = gr.getFontMetrics(getFont());
 
-		// Set distance to perspective point and view plane
-		front.setPRP(0, 0, DPRP);
-		front.setCW(0, 0, DVPL);
-		front.setCentre((int)Math.round(size().width/2), (int)Math.round(size().height/2));
+        gr.setColor(Color.black);
+        gr.fillRect(0, 0, r.width, r.height);
 
-		Object = new Vector();
+        gr.setColor(Color.white);
+        gr.drawString("DUH! Magnus was here.", 100, 100);
 
-		// Add polygon to object
-		Object.addElement(front);
+        degree++;
+        if (degree > 360000)
+            degree = 360000;
 
-// TOP  polygon
+        if ((!mouse) && rotxy == 0 && rotxz == 0 && rotyz == 0) {
+            rotxy_change = (int) Math.round(rot_max * Math.sin(0.6 * degree * Math.PI / 180));
+            rotxz_change = (int) Math.round(rot_max * Math.cos((rot_factor2 / 100) * degree * Math.PI / 180));
+            rotyz_change = (int) Math.round(rot_max * Math.sin((rot_factor3 / 100) * degree * Math.PI / 180));
+        }
 
-		front = new ThreeDPolygon();
-	
-		// Add another polygon
+        // Go through the vector of Z-sorted polygons and rotate and draw them
 
-		// Upper front left
+        for (Enumeration e = ZSorted.elements(); e.hasMoreElements(); ) {
+            ThreeDPolygon p = (ThreeDPolygon) e.nextElement();
 
-		front.addPoint(-10.0, 10.0, 10.0);
+            if ((!mouse) && rotxy == 0 && rotxz == 0 && rotyz == 0) {
+                // Make rotation
+                p.Rotate(rotxy_change, rotxz_change, rotyz_change);
+            } else {
+                if (!mouse) {
+                    // Make rotation
+                    p.Rotate(rotxy, rotxz, rotyz);
+                } else {
+                    p.Rotate(0, mousex, mousey);
+                }
+            }
 
-		// Upper back left corner
-		front.addPoint(-10.0, 10.0, -10.0);
+            // Paint the object, not shaded but filled
+            p.paintPolygon(gr, shade, fill);
+        }
 
-		// Upper back right
-		front.addPoint(10.0, 10.0, -10.0);
+        gr.setColor(Color.white);
 
-		// Upper front right
-		front.addPoint(10.0, 10.0, 10.0);
+        frames++;
+        fps = (frames * 10000) / (System.currentTimeMillis() - firstFrame);
+        gr.drawString(fps / 10 + "." + fps % 10 + " fps", 2, size().height - 20);
 
-		// Set color of polygon
-		front.setColor(255,0,0);
+        gr.setColor(Color.black);
 
-		// Set scale of object
-		front.Scale(scale);
-		front.Translate(0,0,translate);
+        return;
+    }
 
-		// Set distance to perspective point and view plane
-		front.setPRP(0, 0, DPRP);
-		front.setCW(0, 0, DVPL);
-		front.setCentre((int)Math.round(size().width/2), (int)Math.round(size().height/2));
+    private void getAppletParameters() {
+        paramstr = getParameter("fill");
+        if (paramstr != null)
+            fill = Integer.valueOf(paramstr).intValue();
 
-		// Add polygon to object
-		Object.addElement(front);
+        paramstr = getParameter("prp");
+        if (paramstr != null)
+            DPRP = Integer.valueOf(paramstr).intValue();
 
-// LEFT polygon
+        paramstr = getParameter("vpl");
+        if (paramstr != null)
+            DVPL = Integer.valueOf(paramstr).intValue();
 
-		front = new ThreeDPolygon();
+        paramstr = getParameter("rotyz");
+        if (paramstr != null)
+            rotyz = Integer.valueOf(paramstr).intValue();
 
-		// Add another polygon
+        paramstr = getParameter("rotxz");
+        if (paramstr != null)
+            rotxz = Integer.valueOf(paramstr).intValue();
 
-		// Upper front left
+        paramstr = getParameter("rotxy");
+        if (paramstr != null)
+            rotxy = Integer.valueOf(paramstr).intValue();
 
-		front.addPoint(-10.0, 10.0, 10.0);
+        paramstr = getParameter("rotmax");
+        if (paramstr != null)
+            rot_max = Integer.valueOf(paramstr).intValue();
 
-		// Lower front left corner
-		front.addPoint(-10.0, -10.0, 10.0);
+        paramstr = getParameter("rot1");
+        if (paramstr != null)
+            rot_factor1 = Integer.valueOf(paramstr).intValue();
 
-		// Lower back left
-		front.addPoint(-10.0, -10.0, -10.0);
+        paramstr = getParameter("rot2");
+        if (paramstr != null)
+            rot_factor2 = Integer.valueOf(paramstr).intValue();
 
-		// Upper back left
-		front.addPoint(-10.0, 10.0, -10.0);
+        paramstr = getParameter("rot3");
+        if (paramstr != null)
+            rot_factor3 = Integer.valueOf(paramstr).intValue();
 
-		// Set color of polygon
-		front.setColor(0,255,0);
+        paramstr = getParameter("scale");
+        if (paramstr != null)
+            scale = Integer.valueOf(paramstr).intValue();
 
-		// Set scale of object
-		front.Scale(scale);
-		front.Translate(0,0,translate);
+        paramstr = getParameter("delay");
+        if (paramstr != null)
+            intFrameRate = Integer.valueOf(paramstr).intValue();
 
-		// Set distance to perspective point and view plane
-		front.setPRP(0, 0, DPRP);
-		front.setCW(0, 0, DVPL);
-		front.setCentre((int)Math.round(size().width/2), (int)Math.round(size().height/2));
+        paramstr = getParameter("shade");
+        if (paramstr.equals("on"))
+            shade = true;
+    }
 
-		// Add polygon to object
-		Object.addElement(front);
+    public void start() {
+        //Create a thread and start it
 
-// RIGHT polygon
+        if (trThread == null) {
+            trThread = new Thread(this);
+            trThread.start();
+            firstFrame = System.currentTimeMillis();
+            frames = 0;
+        }
 
-		front = new ThreeDPolygon();
+    }
 
-		// Add another polygon
+    public void stop() {
+        //Stop animation thread
 
-		// Upper front right
+        trThread = null;
 
-		front.addPoint(10.0, 10.0, 10.0);
+    }
 
-		// Upper back right corner
-		front.addPoint(10.0, 10.0, -10.0);
+    public void run() {
+        long time = System.currentTimeMillis();
 
-		// Lower back right
-		front.addPoint(10.0, -10.0, -10.0);
+        while (trThread != null) {
+            try {
+                // Set the delay of the drawing
 
-		// Lower front right
-		front.addPoint(10.0, -10.0, 10.0);
+                time += intFrameRate;
+                Thread.sleep(Math.max(0, time - System.currentTimeMillis()));
+            } catch (InterruptedException e) {
+            }
 
-		// Set color of polygon
-		front.setColor(0,0,255);
+            // Call a repaint of the object and canvas
+            repaint();
+        }
+    }
 
-		// Set scale of object
-		front.Scale(scale);
-		front.Translate(0,0,translate);
+    public boolean mouseDown(Event evt, int x, int y) {
 
-		// Set distance to perspective point and view plane
-		front.setPRP(0, 0, DPRP);
-		front.setCW(0, 0, DVPL);
-		front.setCentre((int)Math.round(size().width/2), (int)Math.round(size().height/2));
+        if (mouse) {
+            showStatus("Rotation restored. Click to control rotation.");
+            mouse = false;
+        } else {
+            showStatus("Mouse clicked at x=" + x + ", y=" + y + ". User now controls rotation.");
+            mouse = true;
+            mousedragx = x;
+            mousedragy = y;
+        }
 
-		// Add polygon to object
-		Object.addElement(front);
+        return true;
 
-// BOTTOM polygon
+    }
 
-		front = new ThreeDPolygon();
+    public boolean mouseDrag(Event evt, int x, int y) {
 
-		// Add another polygon
+        showStatus("Mouse dragged from x=" + mousedragx + ", y=" + mousedragy + " to x=" + x + ", y=" + y + ".");
+        mousex = (int) Math.round(10 * (x - mousedragx) / size().width);
+        mousey = (int) Math.round(10 * (y - mousedragy) / size().height);
 
-		// Lower front left
+        return true;
 
-		front.addPoint(-10.0, -10.0, 10.0);
+    }
 
-		// Lower front right
-		front.addPoint(10.0, -10.0, 10.0);
+    // Find the index of the biggest z-valued point in a vector
+    private final int FindBiggest(Vector scan) {
+        double biggest = -10000.0;
+        int index = -1;
 
-		// Lower back right
-		front.addPoint(10.0, -10.0, -10.0);
+        for (Enumeration e = scan.elements(); e.hasMoreElements(); ) {
+            ThreeDPolygon p = (ThreeDPolygon) e.nextElement();
+            double big = p.getZvalue();
 
-		// Lower back left
-		front.addPoint(-10.0, -10.0, -10.0);
+            if (big > biggest) {
+                index = scan.indexOf(p);
+                biggest = big;
+            }
+        }
 
-		// Set color of polygon
-		front.setColor(255,255,0);
+        return index;
+    }
 
-		// Set scale of object
-		front.Scale(scale);
-		front.Translate(0,0,translate);
+    // Sort the Polygons in Z-Order
 
-		// Set distance to perspective point and view plane
-		front.setPRP(0, 0, DPRP);
-		front.setCW(0, 0, DVPL);
-		front.setCentre((int)Math.round(size().width/2), (int)Math.round(size().height/2));
+    public Vector ZSort(Vector unsorted) {
+        Vector sorted = new Vector();
+        Vector tmp = (Vector) unsorted.clone();
+        int ind = 0;
 
-		// Add polygon to object
-		Object.addElement(front);
+        while (tmp.size() > 0 && ind > -1) {
+            ind = FindBiggest(tmp);
+            sorted.addElement(tmp.elementAt(ind));
+            tmp.removeElementAt(ind);
+        }
 
-// BACK polygon
+        return sorted;
 
-		front = new ThreeDPolygon();
-	
-		// Add another polygon
+    }
 
-		// Upper back left
+    private void addBackPolygon(Vector threeDObject) {
+        ThreeDPolygon front = new ThreeDPolygon();
 
-		front.addPoint(-10.0, 10.0, -10.0);
+        // Add another polygon
 
-		// Lower back left corner
-		front.addPoint(-10.0, -10.0, -10.0);
+        // Upper back left
+        front.addPoint(-10.0, 10.0, -10.0);
 
-		// Lower back right
-		front.addPoint(10.0, -10.0, -10.0);
+        // Lower back left corner
+        front.addPoint(-10.0, -10.0, -10.0);
 
-		// Upper back right
-		front.addPoint(10.0, 10.0, -10.0);
+        // Lower back right
+        front.addPoint(10.0, -10.0, -10.0);
 
-		// Set color of polygon
-		front.setColor(255,0,255);
+        // Upper back right
+        front.addPoint(10.0, 10.0, -10.0);
 
-		// Set scale of object
-		front.Scale(scale);
-		front.Translate(0,0,translate);
+        // Set color of polygon
+        front.setColor(255, 0, 255);
 
-		// Set distance to perspective point and view plane
-		front.setPRP(0, 0, DPRP);
-		front.setCW(0, 0, DVPL);
-		front.setCentre((int)Math.round(size().width/2), (int)Math.round(size().height/2));
+        // Set scale of object
+        front.Scale(scale);
+        front.Translate(0, 0, translate);
 
-		// Add polygon to object
-		Object.addElement(front);
+        // Set distance to perspective point and view plane
+        front.setPRP(0, 0, DPRP);
+        front.setCW(0, 0, DVPL);
+        front.setCentre(xDistance0ToCentre, yDistance0ToCentre);
 
-// Final result: a CUBE!
-               		showStatus("Click and drag your mouse on object to control rotation.");
+        // Add polygon to object
+        threeDObject.addElement(front);
+    }
 
-	 }
+    private void addBottomPolygon(Vector threeDObject) {
+        ThreeDPolygon front = new ThreeDPolygon();
 
-	public void start()
-	{
-		//Create a thread and start it
+        // Add another polygon
 
-		if (trThread == null)
-		{
-			trThread = new Thread(this);
-			trThread.start();
-			firstFrame=System.currentTimeMillis();
-			frames = 0;
-		}
+        // Lower front left
+        front.addPoint(-10.0, -10.0, 10.0);
 
-	}
+        // Lower front right
+        front.addPoint(10.0, -10.0, 10.0);
 
-	public void stop()
-	{
-		//Stop animation thread
+        // Lower back right
+        front.addPoint(10.0, -10.0, -10.0);
 
-		trThread = null;
+        // Lower back left
+        front.addPoint(-10.0, -10.0, -10.0);
 
-	}
+        // Set color of polygon
+        front.setColor(255, 255, 0);
 
-	public void run()
-	{
-		long time = System.currentTimeMillis();
+        // Set scale of object
+        front.Scale(scale);
+        front.Translate(0, 0, translate);
 
-		while (trThread != null)
-		{
-			try
-			{
-				// Set the delay of the drawing
+        // Set distance to perspective point and view plane
+        front.setPRP(0, 0, DPRP);
+        front.setCW(0, 0, DVPL);
+        front.setCentre(xDistance0ToCentre, yDistance0ToCentre);
 
-				time += intFrameRate;
-				Thread.sleep(Math.max(0, time - System.currentTimeMillis()));
-			}
-			catch (InterruptedException e)
-			{
-			}
+        // Add polygon to object
+        threeDObject.addElement(front);
+    }
 
-			// Call a repaint of the object and canvas
-			repaint();
-		}
-	}
+    private void addRightPolygon(Vector threeDObject) {
+        ThreeDPolygon front = new ThreeDPolygon();
 
-	public boolean mouseDown(Event evt, int x, int y)
-	{
+        // Add another polygon
 
-		if (mouse)
-		{
-                		showStatus("Rotation restored. Click to control rotation.");
-			mouse = false;
-		}
-		else
-		{
-                		showStatus("Mouse clicked at x="+x+", y="+y+". User now controls rotation.");
-			mouse = true;
-			mousedragx = x;
-			mousedragy = y;
-		}
+        // Upper front right
+        front.addPoint(10.0, 10.0, 10.0);
 
-		return true;
+        // Upper back right corner
+        front.addPoint(10.0, 10.0, -10.0);
 
-	}
+        // Lower back right
+        front.addPoint(10.0, -10.0, -10.0);
 
-	public boolean mouseDrag(Event evt, int x, int y)
-	{
+        // Lower front right
+        front.addPoint(10.0, -10.0, 10.0);
 
-               		showStatus("Mouse dragged from x="+mousedragx+", y="+mousedragy+" to x="+x+", y="+y+".");
-		mousex = (int)Math.round(10*(x-mousedragx)/size().width);
-		mousey = (int)Math.round(10*(y-mousedragy)/size().height);
+        // Set color of polygon
+        front.setColor(0, 0, 255);
 
-		return true;
+        // Set scale of object
+        front.Scale(scale);
+        front.Translate(0, 0, translate);
 
-	}
+        // Set distance to perspective point and view plane
+        front.setPRP(0, 0, DPRP);
+        front.setCW(0, 0, DVPL);
+        front.setCentre(xDistance0ToCentre, yDistance0ToCentre);
 
-	public final synchronized void update (Graphics grG)
-	{
-		// The double-buffering routine, makes sure drawing is made to a hidden image. Then we switch the images.
+        // Add polygon to object
+        threeDObject.addElement(front);
+    }
 
-	     	Dimension d = size();
-      		if ((imOffScreenImage == null) || (d.width != dOffScreenSize.width) || (d.height != dOffScreenSize.height))
-		{
-			imOffScreenImage = createImage(d.width, d.height);
-			dOffScreenSize = d;
-			grOffScreenGraphics = imOffScreenImage.getGraphics();
-			grOffScreenGraphics.setFont(getFont());
-		}
-    	
-		grG.setColor(Color.black);
+    private void addFrontPolygon(Vector threeDObject) {
+        ThreeDPolygon front = new ThreeDPolygon();
+        // Upper front left
+        front.addPoint(-10.0, 10.0, 10.0);
 
-		grOffScreenGraphics.fillRect(0,0,d.width, d.height);
+        // Upper front right corner
+        front.addPoint(10.0, 10.0, 10.0);
 
-	    	paint(grOffScreenGraphics);
+        // Lower front right
+        front.addPoint(10.0, -10.0, 10.0);
 
-		grG.drawImage(imOffScreenImage, 0, 0, null);
-	}
+        // Lower front left
+        front.addPoint(-10.0, -10.0, 10.0);
 
-	public final synchronized void paint(Graphics gr)
-	{
-		Rectangle	r=bounds();
-		Vector		ZSorted;
+        // Set color of polygon
+        front.setColor(255, 255, 255);
 
-		ZSorted = ZSort(Object);
+        // Set scale of object
+        front.Scale(scale);
+        front.Translate(0, 0, translate);
 
-		if (fm==null)
-			fm=gr.getFontMetrics(getFont());
+        // Set distance to perspective point and view plane
+        front.setPRP(0, 0, DPRP);
+        front.setCW(0, 0, DVPL);
+        front.setCentre(xDistance0ToCentre, yDistance0ToCentre);
 
-		gr.setColor(Color.black);
-		gr.fillRect(0, 0, r.width, r.height);
+        // Add polygon to object
+        threeDObject.addElement(front);
+    }
 
-		gr.setColor(Color.white);
-		gr.drawString("DUH! Magnus was here.", 100, 100);
+    private void addLeftPolygon(Vector threeDObject) {
+        ThreeDPolygon front = new ThreeDPolygon();
+        // Add another polygon
 
-		degree++;
-		if (degree>360000)
-			degree = 360000;
+        // Upper front left
+        front.addPoint(-10.0, 10.0, 10.0);
 
-		if ((!mouse) && rotxy==0 && rotxz==0 && rotyz==0)
-		{ 
-			rotxy_change = (int)Math.round(rot_max * Math.sin(0.6*degree*Math.PI/180));
-			rotxz_change = (int)Math.round(rot_max * Math.cos((rot_factor2/100)*degree*Math.PI/180));
-			rotyz_change = (int)Math.round(rot_max * Math.sin((rot_factor3/100)*degree*Math.PI/180));
-		}
+        // Lower front left corner
+        front.addPoint(-10.0, -10.0, 10.0);
 
-		// Go through the vector of Z-sorted polygons and rotate and draw them
+        // Lower back left
+        front.addPoint(-10.0, -10.0, -10.0);
 
-		for (Enumeration e = ZSorted.elements(); e.hasMoreElements();)
-		{
-			ThreeDPolygon p = (ThreeDPolygon)e.nextElement(); 
+        // Upper back left
+        front.addPoint(-10.0, 10.0, -10.0);
 
-			if ((!mouse) && rotxy==0 && rotxz==0 && rotyz==0)
-			{ 
-				// Make rotation
-				p.Rotate(rotxy_change, rotxz_change, rotyz_change);
-			}
-			else{
-				if (!mouse)
-				{
-					// Make rotation
-					p.Rotate(rotxy, rotxz, rotyz);
-				}
-				else
-				{
-					p.Rotate(0, mousex, mousey);
-				}
-			}
+        // Set color of polygon
+        front.setColor(0, 255, 0);
 
-			// Paint the object, not shaded but filled
-			p.paintPolygon(gr, shade, fill);
-		}
-		
-		gr.setColor(Color.white);
+        // Set scale of object
+        front.Scale(scale);
+        front.Translate(0, 0, translate);
 
-		frames++;
-		fps = (frames*10000) / (System.currentTimeMillis()-firstFrame);
-		gr.drawString(fps/10 + "." + fps%10 + " fps", 2, size().height - 20);
+        // Set distance to perspective point and view plane
+        front.setPRP(0, 0, DPRP);
+        front.setCW(0, 0, DVPL);
+        front.setCentre(xDistance0ToCentre, yDistance0ToCentre);
 
-		gr.setColor(Color.black);
+        // Add polygon to object
+        threeDObject.addElement(front);
+    }
 
-		return;
-    	}
+    private void addTopPolygon(Vector threeDObject) {
+        ThreeDPolygon front = new ThreeDPolygon();
 
-	// Find the index of the biggest z-valued point in a vector
-	private final int FindBiggest(Vector scan)
-	{
-		double biggest = -10000.0;
-		int index = -1;
+        // Add another polygon
 
-		for (Enumeration e=scan.elements(); e.hasMoreElements();)
-		{
-			ThreeDPolygon p = (ThreeDPolygon)e.nextElement();
-			double big = p.getZvalue();
+        // Upper front left
+        front.addPoint(-10.0, 10.0, 10.0);
 
-			if (big>biggest)
-			{
-				index = scan.indexOf(p);
-				biggest = big;
-			}
-		}
+        // Upper back left corner
+        front.addPoint(-10.0, 10.0, -10.0);
 
-		return index;
-	}
+        // Upper back right
+        front.addPoint(10.0, 10.0, -10.0);
 
-	// Sort the Polygons in Z-Order
+        // Upper front right
+        front.addPoint(10.0, 10.0, 10.0);
 
-	public Vector ZSort(Vector unsorted)
-	{
-		Vector sorted = new Vector();
-		Vector tmp = (Vector)unsorted.clone();
-		int ind = 0;		
+        // Set color of polygon
+        front.setColor(255, 0, 0);
 
-		while (tmp.size()>0 && ind >-1)
-		{
-			ind = FindBiggest(tmp);
-			sorted.addElement(tmp.elementAt(ind));
-			tmp.removeElementAt(ind);
-		}
+        // Set scale of object
+        front.Scale(scale);
+        front.Translate(0, 0, translate);
 
-		return sorted;
+        // Set distance to perspective point and view plane
+        front.setPRP(0, 0, DPRP);
+        front.setCW(0, 0, DVPL);
+        front.setCentre(xDistance0ToCentre, yDistance0ToCentre);
 
-	}
+        // Add polygon to object
+        threeDObject.addElement(front);
+    }
 }
